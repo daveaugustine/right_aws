@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.name = 'right_aws'
   spec.rubyforge_project = 'rightaws'
   spec.version = RightAws::VERSION::STRING
-  spec.authors = ['RightScale, Inc.']
+  spec.authors = ['RightScale, Inc.', 'Sam Stokes <sam@rapportive.com>']
   spec.email = 'support@rightscale.com'
   spec.summary = 'Interface classes for the Amazon EC2, SQS, and S3 Web Services'
   spec.has_rdoc = true
