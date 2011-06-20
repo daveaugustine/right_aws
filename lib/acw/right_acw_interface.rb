@@ -33,7 +33,7 @@ module RightAws
     include RightAwsBaseInterface
 
     # Amazon ACW API version being used
-    API_VERSION       = "2009-05-15"
+    API_VERSION       = "2010-08-01"
     DEFAULT_HOST      = "monitoring.amazonaws.com"
     DEFAULT_PATH      = '/'
     DEFAULT_PROTOCOL  = 'https'
@@ -114,7 +114,7 @@ module RightAws
     #      * Service (required)   - the name of the service that reported the monitoring data - for LoadBalancing metrics, use "LBS"
     #      * Namespace (required) - in private beta, the available metrics are all reported by AWS services, so set this to "AWS"
     #
-    #    :measure_name
+    #    :metric_name
     #      EC2 Metrics:
     #      * CPUUtilization  the percentage of allocated EC2 Compute Units that are currently in use on the instance. Units are Percent.
     #      * NetworkIn      - the number of bytes received on all network interfaces by the instance. Units are Bytes.
@@ -151,14 +151,14 @@ module RightAws
       end_time = options[:end_time] || Time.now.utc
       end_time = end_time.utc.strftime("%Y-%m-%dT%H:%M:%S+00:00") if end_time.is_a?(Time)
       # Measure name
-      measure_name = options[:measure_name] || 'CPUUtilization'
+      metric_name = options[:metric_name] || 'CPUUtilization'
       # Dimensions (a hash, empty by default)
       dimensions = options[:dimensions] || options[:dimentions] || {}
       #
       request_hash = { 'Period'      => period,
                        'StartTime'   => start_time,
                        'EndTime'     => end_time,
-                       'MeasureName' => measure_name }
+                       'MetricName' => metric_name }
       request_hash['Unit']       = options[:unit]        if options[:unit]
       request_hash['CustomUnit'] = options[:custom_unit] if options[:custom_unit]
       request_hash['Namespace']  = options[:namespace]   if options[:namespace]
@@ -178,10 +178,10 @@ module RightAws
     #
     #  acw.list_metrics #=>
     #      [ { :namespace    => "AWS/ELB",
-    #          :measure_name => "HealthyHostCount",
+    #          :metric_name => "HealthyHostCount",
     #          :dimensions   => { "LoadBalancerName"=>"test-kd1" } },
     #        { :namespace    => "AWS/ELB",
-    #          :measure_name => "UnHealthyHostCount",
+    #          :metric_name => "UnHealthyHostCount",
     #          :dimensions   => { "LoadBalancerName"=>"test-kd1" } } ]
     def list_metrics
       link = generate_request("ListMetrics")
@@ -226,7 +226,7 @@ module RightAws
       end
       def tagend(name)
         case name
-        when 'MeasureName' then @item[:measure_name] = @text
+        when 'MetricName' then @item[:metric_name] = @text
         when 'Namespace'   then @item[:namespace] = @text
         when 'Name'        then @dname  = @text
         when 'Value'       then @dvalue = @text
