@@ -188,6 +188,60 @@ module RightAws
       request_cache_or_info :list_metrics, link,  ListMetricsParser, @@bench, true
     end
 
+    #  Publishes metric data points to Amazon CloudWatch. Amazon Cloudwatch associates the data points with the specified metric. If the specified metric does not exist, Amazon CloudWatch creates the metric.
+    #
+    #  Options are:
+    #
+    #    :namespace    - (required) The namespace corresponding to the service of interest.
+    #
+    #    :data         - List of hashes of data point options.  Alternatively, to publish only a
+    #                    single data point, specify the data point options directly and omit the
+    #                    :data option.
+    #
+    #    Data point options:
+    #      :metric_name  - (required) The name of the metric
+    #      :value        - (required) The value for the metric
+    #      :timestamp    - The time stamp used for the metric. If not specified, the default value is set to the time the metric data was received.
+    #      :unit         - Seconds, Percent, Bytes, Bits, Count, Bytes/Second, Bits/Second, Count/Second, and None
+    #      :dimensions   - A list of dimensions associated with the metric.
+    #
+    def put_metric_data(options = {})
+      namespace = options[:namespace]
+
+      if options[:data]
+        data = options[:data]
+      else
+        data_options = options.dup
+        data_options.delete :namespace
+        data = [data_options]
+      end
+
+      datapoints = data.map do |point_hash|
+        # get the properties for each data point into a defined order for amazonize_list
+        point_hash.values_at(:metric_name, :value, :timestamp, :unit)
+      end
+
+      request_hash = { 'Namespace' => namespace }
+      request_hash.merge!(
+        amazonize_list(
+          %w(MetricName Value Timestamp Unit).map {|property| "MetricData.member.?.#{property}" },
+          datapoints, :default => :skip_nils))
+
+      dimensions = data.map do |point_hash|
+        if point_dimensions = point_hash[:dimensions]
+          keys = point_dimensions.keys
+          [keys, point_dimensions.values_at(*keys)]
+        end
+      end
+      request_hash.merge!(
+        amazonize_list(
+          %w(Name Value).map {|property| "MetricData.member.?.Dimensions.member.?.#{property}" },
+          dimensions, :default => :skip_nils))
+
+      link = generate_request(:post, "PutMetricData", request_hash)
+      request_info(link, PutMetricDataParser.new(:logger => @logger))
+    end
+
     #-----------------------------------------------------------------
     #      PARSERS: MetricStatistics
     #-----------------------------------------------------------------
@@ -240,6 +294,18 @@ module RightAws
       def reset
         @p      = 'ListMetricsResponse/ListMetricsResult/Metrics'
         @result = []
+      end
+    end
+
+    class PutMetricDataParser < RightAWSParser #:nodoc:
+      def tagend(name)
+        case name
+        when 'RequestId' then @result = @text
+        end
+      end
+
+      def reset
+        @result = nil
       end
     end
 
