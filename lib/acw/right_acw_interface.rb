@@ -97,7 +97,7 @@ module RightAws
     #    :unit         - Seconds, Percent, Bytes, Bits, Count, Bytes/Second, Bits/Second, Count/Second, and None
     #    :custom_unit  - The user-defined CustomUnit applied to a Measure. Please see the key term Unit.
     #    
-    #    :dimentions
+    #    :dimensions
     #      Dimensions for EC2 Metrics:
     #      * ImageId              - shows the requested metric for all instances running this EC2 Amazon Machine Image(AMI)
     #      * AvailabilityZone     - shows the requested metric for all instances running in that EC2 Availability Zone
@@ -152,8 +152,8 @@ module RightAws
       end_time = end_time.utc.strftime("%Y-%m-%dT%H:%M:%S+00:00") if end_time.is_a?(Time)
       # Measure name
       measure_name = options[:measure_name] || 'CPUUtilization'
-      # Dimentions (a hash, empty by default)
-      dimentions = options[:dimentions] || {}
+      # Dimensions (a hash, empty by default)
+      dimensions = options[:dimensions] || options[:dimentions] || {}
       #
       request_hash = { 'Period'      => period,
                        'StartTime'   => start_time,
@@ -163,9 +163,9 @@ module RightAws
       request_hash['CustomUnit'] = options[:custom_unit] if options[:custom_unit]
       request_hash['Namespace']  = options[:namespace]   if options[:namespace]
       request_hash.merge!(amazonize_list('Statistics.member', statistics))
-      # dimentions
+      # dimensions
       dim = []
-      dimentions.each do |key, values|
+      dimensions.each do |key, values|
         Array(values).each { |value|  dim << [key, value] }
       end
       request_hash.merge!(amazonize_list(['Dimensions.member.?.Name', 'Dimensions.member.?.Value'], dim))
@@ -179,10 +179,10 @@ module RightAws
     #  acw.list_metrics #=>
     #      [ { :namespace    => "AWS/ELB",
     #          :measure_name => "HealthyHostCount",
-    #          :dimentions   => { "LoadBalancerName"=>"test-kd1" } },
+    #          :dimensions   => { "LoadBalancerName"=>"test-kd1" } },
     #        { :namespace    => "AWS/ELB",
     #          :measure_name => "UnHealthyHostCount",
-    #          :dimentions   => { "LoadBalancerName"=>"test-kd1" } } ]
+    #          :dimensions   => { "LoadBalancerName"=>"test-kd1" } } ]
     def list_metrics
       link = generate_request("ListMetrics")
       request_cache_or_info :list_metrics, link,  ListMetricsParser, @@bench, true
@@ -220,7 +220,7 @@ module RightAws
         case name
         when 'member'
           case @xmlpath
-            when @p then @item = { :dimentions => {} }
+            when @p then @item = { :dimensions => {}, :dimentions => {} }
           end
         end
       end
@@ -232,7 +232,7 @@ module RightAws
         when 'Value'       then @dvalue = @text
         when 'member'
           case @xmlpath
-          when "#@p/member/Dimensions" then @item[:dimentions][@dname] = @dvalue
+          when "#@p/member/Dimensions" then @item[:dimensions][@dname] = @item[:dimentions][@dname] = @dvalue
           when @p then @result << @item
           end
         end
