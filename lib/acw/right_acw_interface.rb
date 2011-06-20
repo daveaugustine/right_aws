@@ -70,8 +70,8 @@ module RightAws
            params)
     end
 
-    def generate_request(action, params={}) #:nodoc:
-      generate_request_impl(:get, action, params )
+    def generate_request(method, action, params={}) #:nodoc:
+      generate_request_impl(method, action, params )
     end
 
       # Sends request to Amazon and parses the response
@@ -170,7 +170,7 @@ module RightAws
       end
       request_hash.merge!(amazonize_list(['Dimensions.member.?.Name', 'Dimensions.member.?.Value'], dim))
       #
-      link = generate_request("GetMetricStatistics", request_hash)
+      link = generate_request(:get, "GetMetricStatistics", request_hash)
       request_info(link, GetMetricStatisticsParser.new(:logger => @logger))
     end
 
@@ -184,7 +184,7 @@ module RightAws
     #          :metric_name => "UnHealthyHostCount",
     #          :dimensions   => { "LoadBalancerName"=>"test-kd1" } } ]
     def list_metrics
-      link = generate_request("ListMetrics")
+      link = generate_request(:get, "ListMetrics")
       request_cache_or_info :list_metrics, link,  ListMetricsParser, @@bench, true
     end
 
