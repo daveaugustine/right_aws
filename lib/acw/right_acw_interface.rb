@@ -242,6 +242,77 @@ module RightAws
       request_info(link, PutMetricDataParser.new(:logger => @logger))
     end
 
+    # Create or update an alarm associated with a CloudWatch metric.
+    #
+    # `alarm_name` should uniquely identify the alarm within the CloudWatch account.
+    #
+    # `comparison_operator` can be one of :>, :>=, :<, :<=, 'GreaterThanThreshold',
+    #   'GreaterThanOrEqualToThreshold', 'LessThanThreshold', 'LessThanOrEqualToThreshold'.
+    #
+    #  Options are:
+    #
+    #    :period       - x*60 seconds interval (where x > 0)
+    #    :evaluation_periods - number of multiples of 'period' over which to evaluate the metric statistic
+    #    :statistic    - Average, Minimum. Maximum, Sum, Samples
+    #    :namespace    - The namespace corresponding to the service of interest. For example, AWS/EC2 represents Amazon EC2.
+    #    :metric_name  - The metric to monitor.
+    #    :unit         - Seconds, Percent, Bytes, Bits, Count, Bytes/Second, Bits/Second, Count/Second, and None
+    #    :dimensions   - A list of dimensions associated with the metric.
+    #
+    #    :description  - A human-readable description of the alarm.
+    #
+    #    :actions      - Hash whose keys can be :ok, :alarm or :insufficient_data, and values either
+    #                    a single SNS topic ARN or an array of them.
+    #
+    def put_metric_alarm(alarm_name, comparison_operator, threshold, options = {})
+      period = (options[:period] && options[:period].to_i) || 60
+      evaluation_periods = (options[:evaluation_periods] && options[:evaluation_periods].to_i) || 1
+      statistic = options[:statistic] || 'Average'
+      metric_name = options[:metric_name] || 'CPUUtilization'
+      dimensions = options[:dimensions] || {}
+      namespace = options[:namespace]
+      unit = options[:unit]
+      description = options[:description]
+
+      comparison_operator = case comparison_operator.to_sym
+                            when :>; 'GreaterThanThreshold'
+                            when :>=; 'GreaterThanOrEqualToThreshold'
+                            when :<; 'LessThanThreshold'
+                            when :<=; 'LessThanOrEqualToThreshold'
+                            else comparison_operator.to_s
+                            end
+
+      request_hash = {
+        'AlarmName' => alarm_name,
+        'AlarmDescription' => description,
+        'Period' => period,
+        'Threshold' => threshold,
+        'Unit' => unit,
+        'EvaluationPeriods' => evaluation_periods,
+        'Namespace' => namespace,
+        'Statistic' => statistic,
+        'ComparisonOperator' => comparison_operator,
+        'MetricName' => metric_name,
+      }
+
+      request_hash.merge! amazonize_list(['Dimensions.member.?.Name', 'Dimensions.member.?.Value'], dimensions)
+
+      {
+        :ok => :OK,
+        :alarm => :Alarm,
+        :insufficient_data => :InsufficientData,
+      }.each do |state, amazonian_state|
+        state_actions = Array((options[:actions] || {}).delete(state))
+        request_hash.merge! amazonize_list("#{amazonian_state}Actions.member", state_actions)
+      end
+      unless (options[:actions] || {}).empty?
+        raise "Can't set actions for unknown alarm states #{options[:actions].keys.inspect}"
+      end
+
+      link = generate_request(:post, "PutMetricAlarm", request_hash)
+      request_info(link, PutMetricAlarmParser.new(:logger => @logger))
+    end
+
     #-----------------------------------------------------------------
     #      PARSERS: MetricStatistics
     #-----------------------------------------------------------------
@@ -298,6 +369,18 @@ module RightAws
     end
 
     class PutMetricDataParser < RightAWSParser #:nodoc:
+      def tagend(name)
+        case name
+        when 'RequestId' then @result = @text
+        end
+      end
+
+      def reset
+        @result = nil
+      end
+    end
+
+    class PutMetricAlarmParser < RightAWSParser #:nodoc:
       def tagend(name)
         case name
         when 'RequestId' then @result = @text
