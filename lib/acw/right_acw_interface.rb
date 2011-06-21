@@ -297,15 +297,16 @@ module RightAws
 
       request_hash.merge! amazonize_list(['Dimensions.member.?.Name', 'Dimensions.member.?.Value'], dimensions)
 
+      actions = (options[:actions] || {}).dup
       {
         :ok => :OK,
         :alarm => :Alarm,
         :insufficient_data => :InsufficientData,
       }.each do |state, amazonian_state|
-        state_actions = Array((options[:actions] || {}).delete(state))
+        state_actions = Array(actions.delete(state))
         request_hash.merge! amazonize_list("#{amazonian_state}Actions.member", state_actions)
       end
-      unless (options[:actions] || {}).empty?
+      unless actions.empty?
         raise "Can't set actions for unknown alarm states #{options[:actions].keys.inspect}"
       end
 
