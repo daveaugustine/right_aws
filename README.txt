@@ -4,8 +4,8 @@ Published by RightScale, Inc. under the MIT License.
 For information about RightScale, see http://www.rightscale.com
 Forked by Rapportive, Inc. under the MIT License.
 
-Fork adds support for the CloudWatch PutMetricData action, allowing RightAws to
-be used for logging custom metrics.
+Fork adds support (in version 2.2.0) for the CloudWatch PutMetricData action,
+allowing RightAws to be used for logging custom metrics.
 
 == DESCRIPTION:
 
